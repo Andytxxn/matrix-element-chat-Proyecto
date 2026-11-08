@@ -11,7 +11,7 @@ Proyecto de Computación en la Nube.
 - **Caddy**: proxy inverso con HTTPS automático
 
 ## Plan de trabajo
-- [ ] Repositorio y estructura base
+- [x] Repositorio y estructura base
 - [ ] Crear VM en la nube
 - [ ] Configurar dominios
 - [ ] Desplegar los servicios con Docker
