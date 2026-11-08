@@ -14,3 +14,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  synapse:
+    image: matrixdotorg/synapse:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
+    volumes:
+      - ./data/synapse:/data
+
