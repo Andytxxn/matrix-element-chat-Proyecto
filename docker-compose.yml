@@ -26,3 +26,8 @@ services:
     volumes:
       - ./data/synapse:/data
 
+  element:
+    image: vectorim/element-web:latest
+    restart: unless-stopped
+    volumes:
+      - ./element/config.json:/app/config.json:ro
