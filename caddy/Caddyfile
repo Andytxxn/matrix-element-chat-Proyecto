@@ -1,0 +1,9 @@
+{$MATRIX_DOMAIN} {
+	reverse_proxy /_matrix/* synapse:8008
+	reverse_proxy /_synapse/client/* synapse:8008
+	reverse_proxy /.well-known/matrix/* synapse:8008
+}
+
+{$ELEMENT_DOMAIN} {
+	reverse_proxy element:80
+}
