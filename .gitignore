@@ -1,0 +1,10 @@
+# Secretos y datos (NUNCA subir a GitHub)
+.env
+data/
+backups/
+element/config.json
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
