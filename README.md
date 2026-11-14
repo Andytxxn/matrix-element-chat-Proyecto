@@ -10,10 +10,49 @@ Proyecto de Computación en la Nube.
 - **Element Web**: cliente web para chatear
 - **Caddy**: proxy inverso con HTTPS automático
 
+## Inicialización por primera vez (Entorno Local)
+
+Antes de levantar los contenedores por primera vez, cada integrante debe generar en su máquina los archivos locales que están ignorados en Git por seguridad:
+
+1. **Variables de entorno (`.env`)**
+   Crea una copia de `.env.example` llamada `.env`. Puedes colocar los dominios locales (terminados en `.localhost`) y la contraseña de base de datos que prefieras. Por ejemplo:
+   ```env
+   MATRIX_DOMAIN=matrix.localhost
+   ELEMENT_DOMAIN=chat.localhost
+   POSTGRES_PASSWORD=tu_contrasena_segura
+   ```
+
+2. **Configuración de Element (`element/config.json`)**
+   Crea una copia de `element/config.template.json` llamada `element/config.json` y reemplaza `__MATRIX_DOMAIN__` por el mismo dominio de Matrix que definiste en tu `.env` (ej. `matrix.localhost`).
+
+3. **Generar configuración de Synapse (`data/synapse/homeserver.yaml`)**
+   Ejecuta el generador de Synapse indicando en `SYNAPSE_SERVER_NAME` el dominio de Matrix que elegiste:
+   ```bash
+   docker compose run --rm --no-deps -e SYNAPSE_SERVER_NAME=matrix.localhost -e SYNAPSE_REPORT_STATS=no synapse generate
+   ```
+
+4. **Conectar PostgreSQL y habilitar registro (`data/synapse/homeserver.yaml`)**
+   Abre el archivo generado `data/synapse/homeserver.yaml` y reemplaza la sección `database:` (que viene en SQLite por defecto) por PostgreSQL, asegurándote de colocar en `password` la misma contraseña que pusiste en tu `.env`:
+   ```yaml
+   database:
+     name: psycopg2
+     args:
+       user: synapse
+       password: tu_contrasena_segura
+       database: synapse
+       host: postgres
+       cp_min: 5
+       cp_max: 10
+   ```
+   Además, agrega estas dos líneas al final del archivo (sin espacios al inicio) para permitir registrar usuarios directamente desde Element:
+   ```yaml
+   enable_registration: true
+   enable_registration_without_verification: true
+   ```
+
 ## Plan de trabajo
 - [x] Repositorio y estructura base
-- [ ] Crear VM en la nube
-- [ ] Configurar dominios
+- [x] Configuración e inicialización local
 - [ ] Desplegar los servicios con Docker
 - [ ] Pruebas
 - [ ] Informe
