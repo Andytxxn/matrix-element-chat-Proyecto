@@ -10,7 +10,7 @@ Proyecto de Computación en la Nube.
 - **Element Web**: cliente web para chatear
 - **Caddy**: proxy inverso con HTTPS automático
 
-## Inicialización por primera vez (Entorno Local)
+## Inicialización por primera vez (Entorno Local en 1 PC)
 
 Antes de levantar los contenedores por primera vez, cada integrante debe generar en su máquina los archivos locales que están ignorados en Git por seguridad:
 
@@ -50,9 +50,51 @@ Antes de levantar los contenedores por primera vez, cada integrante debe generar
    enable_registration_without_verification: true
    ```
 
+5. **Levantar la plataforma**
+   ```bash
+   docker compose up -d
+   ```
+
+## Acceso desde otros dispositivos en la misma red (LAN / Wi-Fi)
+
+Los dominios `.localhost` solo resuelven dentro de la misma computadora. Si se desea acceder al chat desde celulares u otras laptops conectadas a la misma red Wi-Fi/LAN, sigue estos pasos usando `nip.io`:
+
+1. **Obtener la IP local de la PC anfitriona (Windows PowerShell)**
+   ```powershell
+   (Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null }).IPv4Address.IPAddress
+   ```
+   *(Ejemplo de IP obtenida: `192.168.1.50`)*
+
+2. **Actualizar dominios con `nip.io` en `.env` y `element/config.json`**
+   - En `.env`:
+     ```env
+     MATRIX_DOMAIN=matrix.192.168.1.50.nip.io
+     ELEMENT_DOMAIN=chat.192.168.1.50.nip.io
+     POSTGRES_PASSWORD=tu_contrasena_segura
+     ```
+   - En `element/config.json` (manteniendo `server_name` igual al usado al generar `homeserver.yaml`, y actualizando `base_url`):
+     ```json
+     "m.homeserver": {
+       "base_url": "[https://matrix.192.168.1.50.nip.io](https://matrix.192.168.1.50.nip.io)",
+       "server_name": "matrix.localhost"
+     }
+     ```
+
+3. **Abrir los puertos 80 y 443 en el Firewall de Windows**
+   Ejecuta en PowerShell para permitir que otros dispositivos de la red entren a Caddy:
+   ```powershell
+   Start-Process powershell -Verb RunAs -ArgumentList '-Command "New-NetFirewallRule -DisplayName \"Matrix Caddy\" -Direction Inbound -LocalPort 80,443 -Protocol TCP -Action Allow"'
+   ```
+
+4. **Recrear contenedores y acceder**
+   ```bash
+   docker compose up -d --force-recreate
+   ```
+   En el navegador del otro dispositivo (o celular), ingresa primero a `https://matrix.<TU_IP>.nip.io/_matrix/client/versions` para aceptar el certificado local, y luego entra a `https://chat.<TU_IP>.nip.io`.
+
 ## Plan de trabajo
 - [x] Repositorio y estructura base
-- [x] Configuración e inicialización local
-- [ ] Desplegar los servicios con Docker
+- [x] Configuración e inicialización local y en red LAN
+- [x] Desplegar los servicios con Docker
 - [ ] Pruebas
 - [ ] Informe
