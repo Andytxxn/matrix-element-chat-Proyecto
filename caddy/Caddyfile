@@ -2,6 +2,7 @@
 	tls internal
 	reverse_proxy /_matrix/* synapse:8008
 	reverse_proxy /_synapse/client/* synapse:8008
+	reverse_proxy /_synapse/admin/* synapse:8008
 	reverse_proxy /.well-known/matrix/* synapse:8008
 }
 
@@ -17,4 +18,14 @@
 	handle {
 		reverse_proxy element:80
 	}
+}
+
+admin.{$ELEMENT_DOMAIN} {
+	tls internal
+	reverse_proxy synapse-admin:80
+}
+
+logs.{$ELEMENT_DOMAIN} {
+	tls internal
+	reverse_proxy dozzle:8080
 }

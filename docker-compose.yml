@@ -54,7 +54,19 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  synapse-admin:
+    image: awesometechnologies/synapse-admin:latest
+    restart: unless-stopped
+
+  dozzle:
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dozzle_data:/data
+
 volumes:
+  dozzle_data:
   postgres_data:
   caddy_data:
   caddy_config:
