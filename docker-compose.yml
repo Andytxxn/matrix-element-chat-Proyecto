@@ -29,9 +29,13 @@ services:
 
   element:
     image: vectorim/element-web:latest
+    user: "0:0"
     restart: unless-stopped
+    environment:
+      MATRIX_DOMAIN: ${MATRIX_DOMAIN}
     volumes:
-      - ./element/config.json:/app/config.json:ro
+      - ./element/config.template.json:/app/config.template.json:ro
+      - ./element/init-config.sh:/docker-entrypoint.d/17-init-config.sh:ro
 
   caddy:
     image: caddy:2-alpine

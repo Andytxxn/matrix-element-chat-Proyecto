@@ -3,6 +3,7 @@
 data/
 backups/
 element/config.json
+*.crt
 
 # Sistema / editores
 .DS_Store

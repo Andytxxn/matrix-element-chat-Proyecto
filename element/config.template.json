@@ -2,7 +2,7 @@
   "default_server_config": {
     "m.homeserver": {
       "base_url": "https://__MATRIX_DOMAIN__",
-      "server_name": "__MATRIX_DOMAIN__"
+      "server_name": "matrix.localhost"
     }
   },
   "disable_custom_urls": true,

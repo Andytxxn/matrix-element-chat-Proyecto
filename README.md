@@ -7,12 +7,12 @@ Proyecto de Computación en la Nube.
 ## Componentes
 - **Synapse**: servidor Matrix (usuarios, salas, mensajes)
 - **PostgreSQL**: base de datos
-- **Element Web**: cliente web para chatear
-- **Caddy**: proxy inverso con HTTPS automático
+- **Element Web**: cliente web para chatear (configuración inyectada dinámicamente desde `.env`)
+- **Caddy**: proxy inverso con HTTPS automático y distribución de certificado local (`/cert`)
 
 ## Inicialización por primera vez (Entorno Local en 1 PC)
 
-Antes de levantar los contenedores por primera vez, cada integrante debe generar en su máquina los archivos locales que están ignorados en Git por seguridad:
+Antes de levantar los contenedores por primera vez, cada integrante debe generar en su máquina los archivos locales ignorados en Git por seguridad:
 
 1. **Variables de entorno (`.env`)**
    Crea una copia de `.env.example` llamada `.env`. Puedes colocar los dominios locales (terminados en `.localhost`) y la contraseña de base de datos que prefieras. Por ejemplo:
@@ -21,18 +21,16 @@ Antes de levantar los contenedores por primera vez, cada integrante debe generar
    ELEMENT_DOMAIN=chat.localhost
    POSTGRES_PASSWORD=tu_contrasena_segura
    ```
+   *(Nota: No hace falta crear `element/config.json` manualmente; el contenedor de Element lo genera automáticamente al iniciar usando `element/config.template.json` y el `MATRIX_DOMAIN` del `.env`).*
 
-2. **Configuración de Element (`element/config.json`)**
-   Crea una copia de `element/config.template.json` llamada `element/config.json` y reemplaza `__MATRIX_DOMAIN__` por el mismo dominio de Matrix que definiste en tu `.env` (ej. `matrix.localhost`).
-
-3. **Generar configuración de Synapse (`data/synapse/homeserver.yaml`)**
+2. **Generar configuración de Synapse (`data/synapse/homeserver.yaml`)**
    Ejecuta el generador de Synapse indicando en `SYNAPSE_SERVER_NAME` el dominio de Matrix que elegiste:
    ```bash
    docker compose run --rm --no-deps -e SYNAPSE_SERVER_NAME=matrix.localhost -e SYNAPSE_REPORT_STATS=no synapse generate
    ```
 
-4. **Conectar PostgreSQL y habilitar registro (`data/synapse/homeserver.yaml`)**
-   Abre el archivo generado `data/synapse/homeserver.yaml` y reemplaza la sección `database:` (que viene en SQLite por defecto) por PostgreSQL, asegurándote de colocar en `password` la misma contraseña que pusiste en tu `.env`:
+3. **Conectar PostgreSQL y habilitar registro (`data/synapse/homeserver.yaml`)**
+   Abre `data/synapse/homeserver.yaml` y reemplaza la sección `database:` (SQLite por defecto) por PostgreSQL, colocando en `password` la misma contraseña de tu `.env`:
    ```yaml
    database:
      name: psycopg2
@@ -50,51 +48,55 @@ Antes de levantar los contenedores por primera vez, cada integrante debe generar
    enable_registration_without_verification: true
    ```
 
-5. **Levantar la plataforma**
+4. **Levantar la plataforma**
    ```bash
    docker compose up -d
    ```
 
 ## Acceso desde otros dispositivos en la misma red (LAN / Wi-Fi)
 
-Los dominios `.localhost` solo resuelven dentro de la misma computadora. Si se desea acceder al chat desde celulares u otras laptops conectadas a la misma red Wi-Fi/LAN, sigue estos pasos usando `nip.io`:
+Los dominios `.localhost` solo resuelven dentro de la misma PC. Para conectar celulares u otras laptops en el mismo Wi-Fi usando `nip.io`:
 
 1. **Obtener la IP local de la PC anfitriona (Windows PowerShell)**
    ```powershell
    (Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null }).IPv4Address.IPAddress
    ```
-   *(Ejemplo de IP obtenida: `192.168.1.50`)*
+   *(Ejemplo: `192.168.0.107`)*
 
-2. **Actualizar dominios con `nip.io` en `.env` y `element/config.json`**
-   - En `.env`:
-     ```env
-     MATRIX_DOMAIN=matrix.192.168.1.50.nip.io
-     ELEMENT_DOMAIN=chat.192.168.1.50.nip.io
-     POSTGRES_PASSWORD=tu_contrasena_segura
-     ```
-   - En `element/config.json` (manteniendo `server_name` igual al usado al generar `homeserver.yaml`, y actualizando `base_url`):
-     ```json
-     "m.homeserver": {
-       "base_url": "[https://matrix.192.168.1.50.nip.io](https://matrix.192.168.1.50.nip.io)",
-       "server_name": "matrix.localhost"
-     }
-     ```
+2. **Actualizar los dominios en `.env`**
+   Solo necesitas cambiar la IP en el `.env` (Element tomará el nuevo dominio automáticamente):
+   ```env
+   MATRIX_DOMAIN=matrix.192.168.0.107.nip.io
+   ELEMENT_DOMAIN=chat.192.168.0.107.nip.io
+   POSTGRES_PASSWORD=tu_contrasena_segura
+   ```
 
-3. **Abrir los puertos 80 y 443 en el Firewall de Windows**
-   Ejecuta en PowerShell para permitir que otros dispositivos de la red entren a Caddy:
+3. **Abrir los puertos 80 y 443 en el Firewall de Windows (solo la primera vez)**
    ```powershell
    Start-Process powershell -Verb RunAs -ArgumentList '-Command "New-NetFirewallRule -DisplayName \"Matrix Caddy\" -Direction Inbound -LocalPort 80,443 -Protocol TCP -Action Allow"'
    ```
 
-4. **Recrear contenedores y acceder**
+4. **Recrear contenedores**
    ```bash
    docker compose up -d --force-recreate
    ```
-   En el navegador del otro dispositivo (o celular), ingresa primero a `https://matrix.<TU_IP>.nip.io/_matrix/client/versions` para aceptar el certificado local, y luego entra a `https://chat.<TU_IP>.nip.io`.
+
+## Instalación del certificado local (para cargar imágenes y avatares)
+
+Al usar HTTPS local (`tls internal`), los navegadores bloquean el *Service Worker* (necesario para ver imágenes y archivos adjuntos) hasta que confían en el certificado de Caddy.
+
+Para instalarlo en cualquier PC o celular conectado a la red:
+1. Descarga el certificado directamente desde: **`https://<ELEMENT_DOMAIN>/cert`** (ej. `https://chat.192.168.0.107.nip.io/cert`).
+2. Instálalo como **Certificado de CA / Entidad de certificación raíz de confianza** en el dispositivo:
+   - **Windows:** Doble clic a `root.crt` -> *Instalar certificado* -> *Usuario actual* -> *Colocar todos los certificados en el siguiente almacén* -> *Entidades de certificación raíz de confianza*.
+   - **Android:** *Ajustes -> Seguridad -> Cifrado y credenciales -> Instalar certificado -> Certificado de CA*.
+   - **iOS:** Abrir el archivo para instalar el perfil y luego activarlo en *Configuración -> General -> Información -> Configuración de certificados de confianza*.
+3. Reinicia el navegador y entra a `https://<ELEMENT_DOMAIN>`.
 
 ## Plan de trabajo
 - [x] Repositorio y estructura base
 - [x] Configuración e inicialización local y en red LAN
 - [x] Desplegar los servicios con Docker
-- [ ] Pruebas
+- [x] Pruebas en red local
+- [ ] Mejoras (Panel de administración / Monitoreo)
 - [ ] Informe

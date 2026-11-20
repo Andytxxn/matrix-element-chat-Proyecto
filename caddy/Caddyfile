@@ -7,5 +7,14 @@
 
 {$ELEMENT_DOMAIN} {
 	tls internal
-	reverse_proxy element:80
+	handle /cert {
+		header Content-Disposition "attachment; filename=\"root.crt\""
+		header Content-Type "application/x-x509-ca-cert"
+		root * /data/caddy/pki/authorities/local
+		rewrite * /root.crt
+		file_server
+	}
+	handle {
+		reverse_proxy element:80
+	}
 }
